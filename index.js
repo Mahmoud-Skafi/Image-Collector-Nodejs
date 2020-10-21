@@ -13,13 +13,13 @@ db.then(() => {
 const imageDB = db.get('imagesUrl');
 
 const MAX_DIG = 100000000000000000;
-const screenHeight = 1920;                                  // Screen height when page load
-const screenWidth = 1080;                                   // Screen width when page load 
+const screenHeight = 50000;                                  // Screen width when page load
+const screenWidth = 50000;                                   // Screen height when page load 
 const scrollStep = 9000;                                    // How many step to scroll when the page load  
 const scrollDelay = 1000;                                   // Scroll delay btween each scroll step  
-const imagesDownloadNumber = 3;                             // Number of image's to download
+const imagesDownloadNumber = 20;                            // Number of image's to download
 const imagesDownloadSize = 60000;                           // image size 60000 => 60KB
-const imageNameFormat = 'id';                               // image name format : url, id, r
+const imageNameFormat = 'r';                               // image name format : url, id, r
 const imagePath = './images/';                              // Path where to save image's 
 const pageUrl = 'https://unsplash.com/s/photos/random';     // Page url 
 
@@ -37,10 +37,10 @@ let result = false;
  * @param {*} imagesDownloadNumber 
  * @param {*} imageSize 
  */
-const DownloadNumberOfImages = async (imageUrl, imagesDownloadNumber, imageSize) => {
+const DownloadNumberOfImages = async (imageUrl, imagesDownloadNumber, imageSize, imageNameFormat) => {
 
     for (let i = 0; i < imagesDownloadNumber; i++) {
-        // let randomId = Math.floor(Math.random(10000, false) * MAX_DIG);
+        let randomId = Math.floor(Math.random(10000, false) * MAX_DIG);
         await urlText(imageUrl[i]);
         imageSize = await getImageSize(imageUrl[i]);
         imageName = await renameImages(imageUrl[i], imageNameFormat);
@@ -48,14 +48,14 @@ const DownloadNumberOfImages = async (imageUrl, imagesDownloadNumber, imageSize)
 
             let id = parseInt(imageName);
             const item = await imageDB.findOne({
-                _id: id
-            })
+                _id: randomId
+            });
             if (item) continue;
 
             else {
                 result = await DownloadImage(imageUrl[i], `${imagePath}${imageName}.png`);
                 //INSERT INTO DATABASE
-                const inserted = await imageDB.insert({ "_id": id, "imageUrl": imageUrl[i] });
+                const inserted = await imageDB.insert({ "_id": randomId, "imageUrl": imageUrl[i] });
                 if (!inserted) console.log('DATABASE ERROR');
                 else console.log('ITEM INSERTED');
 
@@ -108,7 +108,7 @@ const getImageSize = async (imageUrl) => {
  * @returns {string}
  */
 const getImageId = async (imageUrl) => {
-    imageName = imageUrl.split('?')[0].split('/');
+    imageName = await imageUrl.split('?')[0].split('/');
     imageName = imageName[imageName.length - 1];
     imageName = imageName.split('-')[1].split('-')[0];
     imageName = imageName.replace(/photo-/g, '');
@@ -142,14 +142,14 @@ const renameImages = async (imageUrl, imageNameFormat) => {
     imageName = imageUrl;
     if (imageNameFormat === 'url') {
         await urlText(imageName);
-        return imageName = `pohot-${Math.floor(Math.random(10000, false) * MAX_DIG)}`;
+        return imageName = `photo-${Math.floor(Math.random(10000, false) * MAX_DIG)}`;
     } else if (imageNameFormat === 'id') {
         await getImageId(imageUrl);
     }
     else if (imageName === 'r') {
-        return imageName = `pohot-${Math.floor(Math.random(10000, false) * MAX_DIG)}`;;
+        return imageName = `photo-${Math.floor(Math.random(10000, false) * MAX_DIG)}`;
     }
-    return imageName;
+    return imageName = `photo-${Math.floor(Math.random(10000, false) * MAX_DIG)}`;
 }
 
 /*PUPPETEER STARTUP*/
@@ -168,11 +168,12 @@ const renameImages = async (imageUrl, imageNameFormat) => {
     while (Counter < imagesDownloadNumber) {
         await scrollPageToBottom(page, scrollStep, scrollDelay);
         Counter = await page.evaluate(() => document.querySelectorAll('.IEpfq img').length);
+        console.log(Counter);
     }
     //GET IMAGE URL
     imageUrl = await page.evaluate(() => Array.from(document.querySelectorAll('.IEpfq img'), e => e.src));
     //CALL DOWNLOAD FUNCTION
-    await DownloadNumberOfImages(imageUrl, imagesDownloadNumber, imagesDownloadSize);
+    await DownloadNumberOfImages(imageUrl, imagesDownloadNumber, imagesDownloadSize, imageNameFormat);
     //PUPPETEER DISCONNT
     await browser.close();
     //MONGODB DISCONNT

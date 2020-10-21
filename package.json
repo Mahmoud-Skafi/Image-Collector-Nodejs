@@ -1,0 +1,19 @@
+{
+  "name": "image-collector-nodejs",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mahmoud-Skafi/Image-Collector-nodejs.git"
+  },
+  "author": "Mahmoud-Skafi",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Mahmoud-Skafi/Image-Collector-nodejs/issues"
+  },
+  "homepage": "https://github.com/Mahmoud-Skafi/Image-Collector-nodejs#readme"
+}

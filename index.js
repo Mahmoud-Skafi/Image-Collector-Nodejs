@@ -7,6 +7,8 @@ const monk = require('monk');
 
 const db = monk(process.env.MONGO_URL || 'localhost: 27017/imageDB');
 
+require('dotenv').config()
+
 db.then(() => {
     console.log('database connection succses ./..');
 });
@@ -17,9 +19,9 @@ const screenHeight = 50000;                                  // Screen width whe
 const screenWidth = 50000;                                   // Screen height when page load 
 const scrollStep = 9000;                                    // How many step to scroll when the page load  
 const scrollDelay = 1000;                                   // Scroll delay btween each scroll step  
-const imagesDownloadNumber = 20;                            // Number of image's to download
+const imagesDownloadNumber = 2;                            // Number of image's to download
 const imagesDownloadSize = 60000;                           // image size 60000 => 60KB
-const imageNameFormat = 'r';                               // image name format : url, id, r
+const imageNameFormat = 'r';                                // image name format : url, id, r
 const imagePath = './images/';                              // Path where to save image's 
 const pageUrl = 'https://unsplash.com/s/photos/random';     // Page url 
 
@@ -40,12 +42,14 @@ let result = false;
 const DownloadNumberOfImages = async (imageUrl, imagesDownloadNumber, imageSize, imageNameFormat) => {
 
     for (let i = 0; i < imagesDownloadNumber; i++) {
+
         let randomId = Math.floor(Math.random(10000, false) * MAX_DIG);
-        await urlText(imageUrl[i]);
+
         imageSize = await getImageSize(imageUrl[i]);
         imageName = await renameImages(imageUrl[i], imageNameFormat);
-        if (imageSize > imagesDownloadSize) {
 
+        if (imageSize > imagesDownloadSize) {
+            await urlText(imageUrl[i]);
             let id = parseInt(imageName);
             const item = await imageDB.findOne({
                 _id: randomId
@@ -152,8 +156,24 @@ const renameImages = async (imageUrl, imageNameFormat) => {
     return imageName = `photo-${Math.floor(Math.random(10000, false) * MAX_DIG)}`;
 }
 
+async function quickstart() {
+    // Imports the Google Cloud client library
+    const vision = require('@google-cloud/vision');
+
+    // Creates a client
+    const client = new vision.ImageAnnotatorClient();
+
+    // Performs label detection on the image file
+    const [result] = await client.labelDetection('https://images.unsplash.com/photo-1508138221679-760a23a2285b?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&w=1000&q=80');
+    const labels = result.labelAnnotations;
+    console.log('Labels:');
+    labels.forEach(label => console.log(label.description));
+}
+
 /*PUPPETEER STARTUP*/
 (async () => {
+    //TODO :connect google api with database 
+    await quickstart();
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
     //PAGE URL

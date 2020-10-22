@@ -20,18 +20,19 @@ const screenHeight = 50000;                                 // Screen height whe
 const screenWidth = 50000;                                  // Screen width when page load
 const scrollStep = 9000;                                    // How many step to scroll when the page load  
 const scrollDelay = 1000;                                   // Scroll delay btween each scroll step  
-const imagesDownloadNumber = 10;                             // Number of image's to download
+const imagesDownloadNumber = 10;                            // Number of image's to download
 const imagesDownloadSize = 60000;                           // image size 60000 => 60KB
-const imageNameFormat = 'r';                               // image name format : url, id, r
+const imageNameFormat = 'r';                                // image name format : url, id, r
 const imagePath = './images/';                              // Path where to save image's 
 const pageUrl = 'https://unsplash.com/s/photos/random';     // Page url 
+const postReq = 'http://localhost:3000'                       //  
 
-let localImagePath = 'Local://'
-let imageSize;              // Image Size
-let imageUrl;               // Image's url 
-let imageName;              // Image's name after download
-let images;                 // Array of imagsUrl
-let imageLabels;            //image lable's/tag's
+let localImagePath = 'Local://'     // image's local path
+let imageSize;                      // Image Size
+let imageUrl;                       // Image's url 
+let imageName;                      // Image's name after download
+let images;                         // Array of imagsUrl
+let imageLabels;                    //image lable's/tag's
 let result = false;
 
 /**
@@ -62,13 +63,23 @@ const DownloadNumberOfImages = async (imageUrl, imagesDownloadNumber, imageSize,
             if (item) continue;
 
             else {
+                localImagePath = 'local://';
                 localImagePath = `${localImagePath}${imageName}.png`;
 
                 result = await DownloadImage(imageUrl[i], `${imagePath}${imageName}.png`);
                 //INSERT INTO DATABASE
-                const inserted = await imagesDownload.insert({ "_id": randomId, "imageUrl": imageUrl[i], "Labels": imageLabels, "localImagePath": localImagePath });
-                if (!inserted) console.log('DATABASE ERROR');
-                else console.log('ITEM INSERTED');
+                await axios.post('http://localhost:3000/admin/img/add', {
+                    url: localImagePath,
+                    tags: imageLabels
+                })
+                    .then((response) => {
+                        console.log('ITEM INSERTED');
+                    }, (error) => {
+                        console.log('DATABASE ERROR');
+                    });
+                // const inserted = await imagesDownload.insert({ "imageUrl": imageUrl[i], "tags": imageLabels, "localImagePath": localImagePath });
+                // if (!inserted) console.log('DATABASE ERROR');
+                // else console.log('ITEM INSERTED');
 
                 if (result === true) {
                     console.log('Success:', imageUrl[i], 'has been downloaded successfully.');
@@ -85,9 +96,18 @@ const DownloadNumberOfImages = async (imageUrl, imagesDownloadNumber, imageSize,
             });
             if (item) continue;
             else {
-                const inserted = await imagesUrl.insert({ "_id": randomId, "imageUrl": imageUrl[i], "Labels": imageLabels });
-                if (!inserted) console.log('DATABASE ERROR');
-                else console.log('ITEM INSERTED');
+                await axios.post('http://localhost:3000/admin/img/add', {
+                    url: imageUrl[i],
+                    tags: imageLabels
+                })
+                    .then((response) => {
+                        console.log('ITEM INSERTED');
+                    }, (error) => {
+                        console.log('DATABASE ERROR');
+                    });
+                // const inserted = await imagesUrl.insert({ "imageUrl": imageUrl[i], "tags": imageLabels });
+                // if (!inserted) console.log('DATABASE ERROR');
+                // else console.log('ITEM INSERTED');
             }
         }
 

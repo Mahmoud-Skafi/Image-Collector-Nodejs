@@ -15,13 +15,13 @@ db.then(() => {
 const imageDB = db.get('imagesUrl');
 
 const MAX_DIG = 100000000000000000;
-const screenHeight = 50000;                                  // Screen width when page load
-const screenWidth = 50000;                                   // Screen height when page load 
+const screenHeight = 50000;                                 // Screen height when page load
+const screenWidth = 50000;                                  // Screen width when page load
 const scrollStep = 9000;                                    // How many step to scroll when the page load  
 const scrollDelay = 1000;                                   // Scroll delay btween each scroll step  
-const imagesDownloadNumber = 2;                            // Number of image's to download
+const imagesDownloadNumber = 2;                             // Number of image's to download
 const imagesDownloadSize = 60000;                           // image size 60000 => 60KB
-const imageNameFormat = 'r';                                // image name format : url, id, r
+const imageNameFormat = 'id';                                // image name format : url, id, r
 const imagePath = './images/';                              // Path where to save image's 
 const pageUrl = 'https://unsplash.com/s/photos/random';     // Page url 
 
@@ -30,8 +30,8 @@ let imageSize;              // Image Size
 let imageUrl;               // Image's url 
 let imageName;              // Image's name after download
 let images;                 // Array of imagsUrl
+let imageLabels;            //image lable's/tag's
 let result = false;
-
 
 /**
  * Download number of images using DownloadImage()
@@ -49,17 +49,21 @@ const DownloadNumberOfImages = async (imageUrl, imagesDownloadNumber, imageSize,
         imageName = await renameImages(imageUrl[i], imageNameFormat);
 
         if (imageSize > imagesDownloadSize) {
-            await urlText(imageUrl[i]);
+
             let id = parseInt(imageName);
+
             const item = await imageDB.findOne({
                 _id: randomId
             });
             if (item) continue;
 
             else {
+                await urlText(imageUrl[i]);
+                await quickstart(imageUrl[i]);
+
                 result = await DownloadImage(imageUrl[i], `${imagePath}${imageName}.png`);
                 //INSERT INTO DATABASE
-                const inserted = await imageDB.insert({ "_id": randomId, "imageUrl": imageUrl[i] });
+                const inserted = await imageDB.insert({ "_id": randomId, "imageUrl": imageUrl[i], "Labels": imageLabels });
                 if (!inserted) console.log('DATABASE ERROR');
                 else console.log('ITEM INSERTED');
 
@@ -153,10 +157,15 @@ const renameImages = async (imageUrl, imageNameFormat) => {
     else if (imageName === 'r') {
         return imageName = `photo-${Math.floor(Math.random(10000, false) * MAX_DIG)}`;
     }
-    return imageName = `photo-${Math.floor(Math.random(10000, false) * MAX_DIG)}`;
+    else {
+        return imageName = `photo-${Math.floor(Math.random(10000, false) * MAX_DIG)}`;
+    }
 }
-
-async function quickstart() {
+/**
+ * Get image lables
+ * @param {*} imagesUrl 
+ */
+const quickstart = async (imagesUrl) => {
     // Imports the Google Cloud client library
     const vision = require('@google-cloud/vision');
 
@@ -164,16 +173,21 @@ async function quickstart() {
     const client = new vision.ImageAnnotatorClient();
 
     // Performs label detection on the image file
-    const [result] = await client.labelDetection('https://images.unsplash.com/photo-1508138221679-760a23a2285b?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&w=1000&q=80');
-    const labels = result.labelAnnotations;
-    console.log('Labels:');
-    labels.forEach(label => console.log(label.description));
+    const [result] = await client.labelDetection(imagesUrl);
+    labels = result.labelAnnotations;
+    labels.forEach((label, index, array) => {
+        array[index] = label.description;
+    });
+    imageLabels = labels;
+
+    return imageLabels;
 }
 
 /*PUPPETEER STARTUP*/
 (async () => {
     //TODO :connect google api with database 
-    await quickstart();
+    //TODO :random image's ID
+
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
     //PAGE URL

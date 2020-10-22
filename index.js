@@ -12,20 +12,21 @@ require('dotenv').config()
 db.then(() => {
     console.log('database connection succses ./..');
 });
-const imageDB = db.get('imagesUrl');
+const imagesDownload = db.get('localImages');
+const imagesUrl = db.get('imagesUrl');
 
 const MAX_DIG = 100000000000000000;
 const screenHeight = 50000;                                 // Screen height when page load
 const screenWidth = 50000;                                  // Screen width when page load
 const scrollStep = 9000;                                    // How many step to scroll when the page load  
 const scrollDelay = 1000;                                   // Scroll delay btween each scroll step  
-const imagesDownloadNumber = 2;                             // Number of image's to download
+const imagesDownloadNumber = 10;                             // Number of image's to download
 const imagesDownloadSize = 60000;                           // image size 60000 => 60KB
-const imageNameFormat = 'id';                                // image name format : url, id, r
+const imageNameFormat = 'r';                               // image name format : url, id, r
 const imagePath = './images/';                              // Path where to save image's 
 const pageUrl = 'https://unsplash.com/s/photos/random';     // Page url 
 
-
+let localImagePath = 'Local://'
 let imageSize;              // Image Size
 let imageUrl;               // Image's url 
 let imageName;              // Image's name after download
@@ -45,25 +46,27 @@ const DownloadNumberOfImages = async (imageUrl, imagesDownloadNumber, imageSize,
 
         let randomId = Math.floor(Math.random(10000, false) * MAX_DIG);
 
+        imageLabels = await quickstart(imageUrl[i]);
         imageSize = await getImageSize(imageUrl[i]);
         imageName = await renameImages(imageUrl[i], imageNameFormat);
-
+        await urlText(imageUrl[i]);
         if (imageSize > imagesDownloadSize) {
+
 
             let id = parseInt(imageName);
 
-            const item = await imageDB.findOne({
-                _id: randomId
+            const item = await imagesDownload.findOne({
+                imageUrl: imageUrl[i]
             });
+
             if (item) continue;
 
             else {
-                await urlText(imageUrl[i]);
-                await quickstart(imageUrl[i]);
+                localImagePath = `${localImagePath}${imageName}.png`;
 
                 result = await DownloadImage(imageUrl[i], `${imagePath}${imageName}.png`);
                 //INSERT INTO DATABASE
-                const inserted = await imageDB.insert({ "_id": randomId, "imageUrl": imageUrl[i], "Labels": imageLabels });
+                const inserted = await imagesDownload.insert({ "_id": randomId, "imageUrl": imageUrl[i], "Labels": imageLabels, "localImagePath": localImagePath });
                 if (!inserted) console.log('DATABASE ERROR');
                 else console.log('ITEM INSERTED');
 
@@ -77,6 +80,15 @@ const DownloadNumberOfImages = async (imageUrl, imagesDownloadNumber, imageSize,
         }
         else {
             console.log("Image Size Is Low :", imageSize);
+            const item = await imagesUrl.findOne({
+                imageUrl: imageUrl[i]
+            });
+            if (item) continue;
+            else {
+                const inserted = await imagesUrl.insert({ "_id": randomId, "imageUrl": imageUrl[i], "Labels": imageLabels });
+                if (!inserted) console.log('DATABASE ERROR');
+                else console.log('ITEM INSERTED');
+            }
         }
 
     }
@@ -185,8 +197,6 @@ const quickstart = async (imagesUrl) => {
 
 /*PUPPETEER STARTUP*/
 (async () => {
-    //TODO :connect google api with database 
-    //TODO :random image's ID
 
     const browser = await puppeteer.launch();
     const page = await browser.newPage();

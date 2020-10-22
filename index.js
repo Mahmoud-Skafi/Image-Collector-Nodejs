@@ -5,7 +5,7 @@ const scrollPageToBottom = require('./scroll');
 const axios = require('axios');
 const monk = require('monk');
 
-const db = monk(process.env.MONGO_URL || 'localhost: 27017/imageDB');
+const db = monk(process.env.MONGO_URL || 'localhost: 27017/dummyData');
 
 require('dotenv').config()
 
@@ -14,6 +14,7 @@ db.then(() => {
 });
 const imagesDownload = db.get('localImages');
 const imagesUrl = db.get('imagesUrl');
+const pictures = db.get('pictures ');
 
 const MAX_DIG = 100000000000000000;
 const screenHeight = 50000;                                 // Screen height when page load
@@ -56,7 +57,7 @@ const DownloadNumberOfImages = async (imageUrl, imagesDownloadNumber, imageSize,
 
             let id = parseInt(imageName);
 
-            const item = await imagesDownload.findOne({
+            const item = await pictures.findOne({
                 imageUrl: imageUrl[i]
             });
 
@@ -68,7 +69,7 @@ const DownloadNumberOfImages = async (imageUrl, imagesDownloadNumber, imageSize,
 
                 result = await DownloadImage(imageUrl[i], `${imagePath}${imageName}.png`);
                 //INSERT INTO DATABASE
-                await axios.post('http://localhost:3000/admin/img/add', {
+                await axios.post(`${postReq}/admin/img/add`, {
                     url: localImagePath,
                     tags: imageLabels
                 })
@@ -91,12 +92,12 @@ const DownloadNumberOfImages = async (imageUrl, imagesDownloadNumber, imageSize,
         }
         else {
             console.log("Image Size Is Low :", imageSize);
-            const item = await imagesUrl.findOne({
+            const item = await pictures.findOne({
                 imageUrl: imageUrl[i]
             });
             if (item) continue;
             else {
-                await axios.post('http://localhost:3000/admin/img/add', {
+                await axios.post(`${postReq}/admin/img/add`, {
                     url: imageUrl[i],
                     tags: imageLabels
                 })

@@ -26,7 +26,7 @@ const imagesDownloadSize = 60000;                           // image size 60000 
 const imageNameFormat = 'r';                                // image name format : url, id, r
 const imagePath = './images/';                              // Path where to save image's 
 const pageUrl = 'https://unsplash.com/s/photos/random';     // Page url 
-const postReq = 'http://localhost:3000'                       //  
+const postReq = 'http://localhost:3000'                     // Post requset url  
 
 let localImagePath = 'Local://'     // image's local path
 let imageSize;                      // Image Size
@@ -46,29 +46,25 @@ const DownloadNumberOfImages = async (imageUrl, imagesDownloadNumber, imageSize,
 
     for (let i = 0; i < imagesDownloadNumber; i++) {
 
-        let randomId = Math.floor(Math.random(10000, false) * MAX_DIG);
-
+        //CALL FUNCTION'S
         imageLabels = await quickstart(imageUrl[i]);
         imageSize = await getImageSize(imageUrl[i]);
         imageName = await renameImages(imageUrl[i], imageNameFormat);
         await urlText(imageUrl[i]);
+        //CHECK IF SIZE OF THE IMAGE > SIZE OF THE IMAGE TO BE DOWNLOAD
         if (imageSize > imagesDownloadSize) {
-
-
-            let id = parseInt(imageName);
-
+            //CHECK DATABASE FOR ANY DUPPLCATION (IMAGE URL DOPPLCATION)
             const item = await pictures.findOne({
                 imageUrl: imageUrl[i]
             });
-
             if (item) continue;
 
             else {
                 localImagePath = 'local://';
                 localImagePath = `${localImagePath}${imageName}.png`;
-
+                //DOWNDLOAD IMAGE'S
                 result = await DownloadImage(imageUrl[i], `${imagePath}${imageName}.png`);
-                //INSERT INTO DATABASE
+                //POST REQUEST TO INSERT INTO DATABASE
                 await axios.post(`${postReq}/admin/img/add`, {
                     url: localImagePath,
                     tags: imageLabels
@@ -78,10 +74,6 @@ const DownloadNumberOfImages = async (imageUrl, imagesDownloadNumber, imageSize,
                     }, (error) => {
                         console.log('DATABASE ERROR');
                     });
-                // const inserted = await imagesDownload.insert({ "imageUrl": imageUrl[i], "tags": imageLabels, "localImagePath": localImagePath });
-                // if (!inserted) console.log('DATABASE ERROR');
-                // else console.log('ITEM INSERTED');
-
                 if (result === true) {
                     console.log('Success:', imageUrl[i], 'has been downloaded successfully.');
                 } else {
@@ -91,12 +83,14 @@ const DownloadNumberOfImages = async (imageUrl, imagesDownloadNumber, imageSize,
             }
         }
         else {
-            console.log("Image Size Is Low :", imageSize);
+            console.log("image size is low :", imageSize);
+
             const item = await pictures.findOne({
                 imageUrl: imageUrl[i]
             });
             if (item) continue;
             else {
+                //CHECK DATABASE FOR ANY DUPPLCATION (IMAGE URL DOPPLCATION)
                 await axios.post(`${postReq}/admin/img/add`, {
                     url: imageUrl[i],
                     tags: imageLabels
@@ -106,9 +100,6 @@ const DownloadNumberOfImages = async (imageUrl, imagesDownloadNumber, imageSize,
                     }, (error) => {
                         console.log('DATABASE ERROR');
                     });
-                // const inserted = await imagesUrl.insert({ "imageUrl": imageUrl[i], "tags": imageLabels });
-                // if (!inserted) console.log('DATABASE ERROR');
-                // else console.log('ITEM INSERTED');
             }
         }
 
@@ -142,7 +133,7 @@ const getImageSize = async (imageUrl) => {
     const response = await axios.get(imageUrl)
     imageSize = response.headers['content-length'];
     return imageSize;
-}
+};
 /**
  * Get image id from url
  * @param {*} imageUrl 
@@ -154,7 +145,7 @@ const getImageId = async (imageUrl) => {
     imageName = imageName.split('-')[1].split('-')[0];
     imageName = imageName.replace(/photo-/g, '');
     return imageName;
-}
+};
 /**
  * Save image's url into file
  * @param {*} imageUrl 
@@ -171,7 +162,7 @@ const urlText = async (imageUrl) => {
         }
         console.log("The file was saved!");
     });
-}
+};
 
 /**
  * Image's url name formater
@@ -181,6 +172,7 @@ const urlText = async (imageUrl) => {
  */
 const renameImages = async (imageUrl, imageNameFormat) => {
     imageName = imageUrl;
+
     if (imageNameFormat === 'url') {
         await urlText(imageName);
         return imageName = `photo-${Math.floor(Math.random(10000, false) * MAX_DIG)}`;
@@ -190,12 +182,10 @@ const renameImages = async (imageUrl, imageNameFormat) => {
     else if (imageName === 'r') {
         return imageName = `photo-${Math.floor(Math.random(10000, false) * MAX_DIG)}`;
     }
-    else {
-        return imageName = `photo-${Math.floor(Math.random(10000, false) * MAX_DIG)}`;
-    }
-}
+    return imageName = `photo-${Math.floor(Math.random(10000, false) * MAX_DIG)}`;
+};
 /**
- * Get image lables
+ * Get image lables using google cloud vision
  * @param {*} imagesUrl 
  */
 const quickstart = async (imagesUrl) => {
@@ -207,6 +197,7 @@ const quickstart = async (imagesUrl) => {
 
     // Performs label detection on the image file
     const [result] = await client.labelDetection(imagesUrl);
+
     labels = result.labelAnnotations;
     labels.forEach((label, index, array) => {
         array[index] = label.description;
@@ -214,7 +205,7 @@ const quickstart = async (imagesUrl) => {
     imageLabels = labels;
 
     return imageLabels;
-}
+};
 
 /*PUPPETEER STARTUP*/
 (async () => {
@@ -222,7 +213,7 @@ const quickstart = async (imagesUrl) => {
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
     //PAGE URL
-    await page.goto('https://unsplash.com/s/photos/random');
+    await page.goto(pageUrl); //EXAMPLE PAGE URL
     //SCREEN RESOLUTION
     await page.setViewport({
         width: screenWidth,
@@ -235,9 +226,9 @@ const quickstart = async (imagesUrl) => {
         Counter = await page.evaluate(() => document.querySelectorAll('.IEpfq img').length);
         console.log(Counter);
     }
-    //GET IMAGE URL
-    imageUrl = await page.evaluate(() => Array.from(document.querySelectorAll('.IEpfq img'), e => e.src));
-    //CALL DOWNLOAD FUNCTION
+    //GET IMAGE URL AND RETURN A ARRAY OF IMAGE'S URL => IMAGEURL["SRC1", "SRC2", "SRC3",....., ETC] 
+    imageUrl = await page.evaluate(() => Array.from(document.querySelectorAll('.IEpfq img'), e => e.src)); //EXAMPLE
+    //CALL IMAGE DOWNLOAD FUNCTION
     await DownloadNumberOfImages(imageUrl, imagesDownloadNumber, imagesDownloadSize, imageNameFormat);
     //PUPPETEER DISCONNT
     await browser.close();
